@@ -8,7 +8,7 @@ public class DrawProperties {
     private int lineColour;
     private int fillColour;
     private int linePattern;
-    private int lineWidth;
+    private int lineWidth = 1;
 
     public int getLineWidth() {
         return lineWidth;

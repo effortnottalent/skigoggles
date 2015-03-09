@@ -1,8 +1,10 @@
 package com.ymdrech.testandroidprodge;
 
+import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -17,6 +19,16 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.SphericalUtil;
+import com.j256.ormlite.dao.Dao;
+import com.ymdrech.testandroidprodge.data.DatabaseHelper;
+import com.ymdrech.testandroidprodge.data.Route;
+import com.ymdrech.testandroidprodge.data.Session;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements SurfaceHolder.Callback,
         GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
@@ -26,12 +38,15 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
     private LocationRequest locationRequest;
     private SurfaceView surfaceView;
     private SurfaceHolder surfaceHolder;
-    private DrawScreenThread drawThread;
-    private ScreenData screenData = new ScreenData();
+    private List<DrawScreenThread> drawThreadList = new ArrayList<DrawScreenThread>();
     private Marker marker;
     private float zoomLevel = 13;
     private RouteManager routeManager;
     private String kmlRoot = "";
+    private static final int LOCATION_REQUEST_INTERVAL = 333;
+    private Location previousLocation;
+    private DatabaseHelper databaseHelper;
+    private Session currentSession;
 
     public float getZoomLevel() {
         return zoomLevel;
@@ -57,14 +72,18 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
         buildGoogleApiClient();
         createLocationRequest();
         initialiseRouteManager();
+        initialiseDatabase();
+
+    }
+
+    private void initialiseDatabase() {
+        databaseHelper = new DatabaseHelper(this);
     }
 
     private void initialiseRouteManager() {
-
         routeManager = new RouteManager(this);
         routeManager.setKmlRoot(kmlRoot);
         routeManager.refreshRoutes();
-
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -78,8 +97,8 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     protected void createLocationRequest() {
         locationRequest = new LocationRequest();
-        locationRequest.setInterval(250);
-        locationRequest.setFastestInterval(250);
+        locationRequest.setInterval(LOCATION_REQUEST_INTERVAL);
+        locationRequest.setFastestInterval(LOCATION_REQUEST_INTERVAL);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
@@ -132,9 +151,17 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        drawThread = new DrawScreenThread(surfaceHolder);
-        drawThread.setScreenData(screenData);
-        drawThread.start();
+        DrawScreenThread drawThread1 = new SpeedTextOnScreenDrawScreenThread();
+        drawThread1.setScreen(new OnScreenWriteDataToScreenImpl(surfaceHolder, 96, 64, 4, 0, 0));
+        drawThread1.setRunning(true);
+        drawThread1.run();
+        drawThreadList.add(drawThread1);
+        DrawScreenThread drawThread2 = new SpeedoOnScreenDrawScreenThread();
+        drawThread2.setScreen(new OnScreenWriteDataToScreenImpl(surfaceHolder, 96, 64, 4, (96+4)*4, 0));
+        drawThread2.setRunning(true);
+        drawThread2.run();
+        drawThreadList.add(drawThread2);
+
     }
 
     @Override
@@ -144,20 +171,15 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        boolean noRetry = false;
-        while(!noRetry) {
-            try {
-                drawThread.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        if(drawThreadList != null) {
+            for(DrawScreenThread drawScreenThread : drawThreadList) {
+                drawScreenThread.setRunning(false);
             }
-            noRetry = true;
         }
     }
 
     protected void startLocationUpdates() {
         Location lastKnownLocation = LocationServices.FusedLocationApi.getLastLocation(googleApiClient);
-        screenData.setLocation(lastKnownLocation);
         LocationServices.FusedLocationApi.requestLocationUpdates(
                 googleApiClient, locationRequest, this);
         onLocationChanged(lastKnownLocation);
@@ -180,7 +202,12 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     @Override
     public void onLocationChanged(Location location) {
+        addLocationToSession(location);
+        ScreenData screenData = new ScreenData();
         screenData.setLocation(location);
+        if(previousLocation != null) {
+            screenData.setCalculatedSpeed(getInstantaneousSpeed(previousLocation, location));
+        }
         if(marker == null) {
             setUpMap();
         }
@@ -188,8 +215,88 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
             LatLng markerLatLong = new LatLng(location.getLatitude(), location.getLongitude());
             marker.setPosition(markerLatLong);
             screenData.setRoute(routeManager.closestRoute(markerLatLong));
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLong, getZoomLevel()));
+            if(screenData.getRoute() != null) {
+                screenData.setAmountComplete(getPercentageRouteComplete(location, screenData.getRoute()));
+                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLong, getZoomLevel()));
+            }
+            if(drawThreadList != null) {
+                for(DrawScreenThread drawScreenThread : drawThreadList) {
+                    drawScreenThread.setScreenData(screenData);
+                }
+            }
+            previousLocation = location;
+            Log.d(getClass().getName(), "updating screenData to " + screenData);
         }
+    }
+
+    private Session createNewSession() {
+        Session session = new Session();
+        session.setDateStarted(new Date());
+        return session;
+    }
+
+    private void assignCurrentSession() throws SQLException {
+        if(currentSession == null) {
+            Dao sessionDao = databaseHelper.getDao(Session.class);
+            List<Session> sessions = sessionDao.queryForEq("isActive", true);
+            if(sessions.size() == 0) {
+                currentSession = createNewSession();
+            } else {
+                currentSession = sessions.get(sessions.size() - 1);
+                if (sessions.size() != 1) {
+                    Log.w(getClass().getName(), "Got more than one active session, so simply picking the " +
+                            "first one as active and setting the others to inactive. This shouldn't " +
+                            "happen very often...");
+                    for (int i = sessions.size() - 1; i > 1; i--) {
+                        Session session = sessions.get(i);
+                        session.setActive(false);
+                        sessionDao.update(session);
+                    }
+                }
+            }
+        }
+    }
+
+    private void addLocationToSession(Location location) {
+        try {
+            assignCurrentSession();
+            updateCurrentSession(location);
+        } catch (SQLException e) {
+            Log.e(getClass().getName(), "Problems adding location to session", e);
+        }
+    }
+
+    private void updateCurrentSession(Location location) throws SQLException {
+        currentSession.addLocation(location);
+        Dao sessionDao = databaseHelper.getDao(Session.class);
+        sessionDao.update(currentSession);
+    }
+
+    private double getInstantaneousSpeed(Location beforeLocation, Location afterLocation) {
+        double distance = SphericalUtil.computeDistanceBetween(
+                new LatLng(beforeLocation.getLatitude(), beforeLocation.getLongitude()),
+                new LatLng(afterLocation.getLatitude(), afterLocation.getLongitude()));
+        double time = afterLocation.getElapsedRealtimeNanos() - beforeLocation.getElapsedRealtimeNanos();
+        return distance / time * 1e9;
+    }
+
+    private double getPercentageRouteComplete(Location location, Route route) {
+        int routeLatLngIndex = -1;
+        double distanceToLatLngAtIndex = Double.POSITIVE_INFINITY;
+        for(int i=0; i < route.getRoute().size(); i++) {
+            double distance = SphericalUtil.computeDistanceBetween(
+                    new LatLng(location.getLatitude(), location.getLongitude()),
+                    route.getRoute().get(i));
+            if(distance < distanceToLatLngAtIndex) {
+                routeLatLngIndex = i;
+                distanceToLatLngAtIndex = distance;
+            }
+        }
+        double distance = 0.0;
+        for(int i=routeLatLngIndex; i < route.getRouteSegmentLengths().size(); i++) {
+            distance += route.getRouteSegmentLengths().get(i);
+        }
+        return distance / route.getLength();
     }
 
 }

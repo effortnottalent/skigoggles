@@ -1,11 +1,12 @@
-package com.ymdrech.testandroidprodge.data;
+package com.ymdrech.testandroidprodge.model;
 
-import android.location.Location;
-
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -14,11 +15,12 @@ import java.util.List;
  */
 @DatabaseTable
 public class Session {
+
     @DatabaseField(generatedId = true) private int id;
     @DatabaseField private String name;
     @DatabaseField private Date dateStarted;
     @DatabaseField private Date dateEnded;
-    @DatabaseField private List<Location> locations = new ArrayList<Location>();
+    @ForeignCollectionField private Collection<DataPoint> dataPoints = new ArrayList<>();
     @DatabaseField private boolean isActive;
 
     public boolean isActive() {
@@ -61,15 +63,15 @@ public class Session {
         this.dateEnded = dateEnded;
     }
 
-    public List<Location> getLocations() {
-        return locations;
+    public List<DataPoint> getDataPoints() {
+        return new ArrayList<DataPoint>(dataPoints);
     }
 
-    public void setLocations(List<Location> locations) {
-        this.locations = locations;
+    public void setDataPoints(List<DataPoint> dataPoints) {
+        this.dataPoints = dataPoints;
     }
 
-    public void addLocation(Location location) {
-        locations.add(location);
+    public void addDataPoint(DataPoint dataPoint) {
+        this.dataPoints.add(dataPoint);
     }
 }

@@ -4,7 +4,7 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.util.Log;
 
-import com.ymdrech.testandroidprodge.data.Route;
+import com.ymdrech.testandroidprodge.model.Route;
 
 /**
  * Created by e4t on 2/25/2015.

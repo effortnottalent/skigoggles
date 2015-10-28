@@ -2,7 +2,7 @@ package com.ymdrech.testandroidprodge;
 
 import android.location.Location;
 
-import com.ymdrech.testandroidprodge.data.Route;
+import com.ymdrech.testandroidprodge.model.Route;
 
 /**
  * Created by e4t on 2/15/2015.

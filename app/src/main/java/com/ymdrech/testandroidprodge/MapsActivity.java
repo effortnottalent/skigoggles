@@ -1,12 +1,12 @@
 package com.ymdrech.testandroidprodge;
 
-import android.database.sqlite.SQLiteDatabase;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -21,9 +21,11 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.SphericalUtil;
 import com.j256.ormlite.dao.Dao;
-import com.ymdrech.testandroidprodge.data.DatabaseHelper;
-import com.ymdrech.testandroidprodge.data.Route;
-import com.ymdrech.testandroidprodge.data.Session;
+import com.ymdrech.testandroidprodge.model.Coordinate;
+import com.ymdrech.testandroidprodge.model.DataPoint;
+import com.ymdrech.testandroidprodge.model.DatabaseHelper;
+import com.ymdrech.testandroidprodge.model.Route;
+import com.ymdrech.testandroidprodge.model.Session;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -202,7 +204,6 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     @Override
     public void onLocationChanged(Location location) {
-        addLocationToSession(location);
         ScreenData screenData = new ScreenData();
         screenData.setLocation(location);
         if(previousLocation != null) {
@@ -214,8 +215,9 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
         if(location != null) {
             LatLng markerLatLong = new LatLng(location.getLatitude(), location.getLongitude());
             marker.setPosition(markerLatLong);
-            screenData.setRoute(routeManager.closestRoute(markerLatLong));
-            if(screenData.getRoute() != null) {
+            Route route = routeManager.closestRoute(markerLatLong);
+            if(route != null) {
+                screenData.setRoute(route);
                 screenData.setAmountComplete(getPercentageRouteComplete(location, screenData.getRoute()));
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLong, getZoomLevel()));
             }
@@ -225,6 +227,7 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
                 }
             }
             previousLocation = location;
+            addLocationToSession(location, route);
             Log.d(getClass().getName(), "updating screenData to " + screenData);
         }
     }
@@ -241,6 +244,7 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
             List<Session> sessions = sessionDao.queryForEq("isActive", true);
             if(sessions.size() == 0) {
                 currentSession = createNewSession();
+                sessionDao.create(currentSession);
             } else {
                 currentSession = sessions.get(sessions.size() - 1);
                 if (sessions.size() != 1) {
@@ -257,19 +261,35 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
         }
     }
 
-    private void addLocationToSession(Location location) {
+    private void updateStatsPage(Session session) {
+
+        StringBuilder details = new StringBuilder();
+        details.append("Current session started: ").append(session.getDateStarted());
+        DataPoint lastDataPoint = session.getDataPoints().get(session.getDataPoints().size() - 1);
+        details.append("\nCurrent run: ").append(lastDataPoint.getRoute());
+
+        TextView textView = (TextView) findViewById(R.id.detailsView);
+        textView.setText(details.toString());
+
+    }
+
+    private void addLocationToSession(Location location, Route route) {
         try {
             assignCurrentSession();
-            updateCurrentSession(location);
+            updateCurrentSession(location, route);
         } catch (SQLException e) {
             Log.e(getClass().getName(), "Problems adding location to session", e);
         }
     }
 
-    private void updateCurrentSession(Location location) throws SQLException {
-        currentSession.addLocation(location);
+    private void updateCurrentSession(Location location, Route route) throws SQLException {
+        DataPoint dataPoint = new DataPoint();
+        dataPoint.setLocation(location);
+        dataPoint.setRoute(route);
+        currentSession.addDataPoint(dataPoint);
         Dao sessionDao = databaseHelper.getDao(Session.class);
         sessionDao.update(currentSession);
+        updateStatsPage(currentSession);
     }
 
     private double getInstantaneousSpeed(Location beforeLocation, Location afterLocation) {
@@ -283,18 +303,22 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
     private double getPercentageRouteComplete(Location location, Route route) {
         int routeLatLngIndex = -1;
         double distanceToLatLngAtIndex = Double.POSITIVE_INFINITY;
-        for(int i=0; i < route.getRoute().size(); i++) {
+
+        int routeCoordinateIndex = 0;
+        for(Coordinate coordinate : route.getRouteCoordinates()) {
             double distance = SphericalUtil.computeDistanceBetween(
                     new LatLng(location.getLatitude(), location.getLongitude()),
-                    route.getRoute().get(i));
+                    coordinate.getLatLng());
             if(distance < distanceToLatLngAtIndex) {
-                routeLatLngIndex = i;
+                routeLatLngIndex = routeCoordinateIndex;
                 distanceToLatLngAtIndex = distance;
             }
+            routeCoordinateIndex++;
         }
+
         double distance = 0.0;
-        for(int i=routeLatLngIndex; i < route.getRouteSegmentLengths().size(); i++) {
-            distance += route.getRouteSegmentLengths().get(i);
+        for(double segmentLengths : route.getRouteSegmentLengths()) {
+            distance += segmentLengths;
         }
         return distance / route.getLength();
     }

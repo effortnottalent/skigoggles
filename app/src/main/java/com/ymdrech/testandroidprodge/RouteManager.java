@@ -8,8 +8,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.PolyUtil;
 import com.google.maps.android.SphericalUtil;
 import com.j256.ormlite.dao.Dao;
-import com.ymdrech.testandroidprodge.data.DatabaseHelper;
-import com.ymdrech.testandroidprodge.data.Route;
+import com.ymdrech.testandroidprodge.model.Coordinate;
+import com.ymdrech.testandroidprodge.model.DatabaseHelper;
+import com.ymdrech.testandroidprodge.model.Route;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -43,7 +44,7 @@ public class RouteManager {
     private static final double MAX_DIST_FROM_RUN = 10.0;
     private String kmlPath;
     private Context context;
-    private List<Route> routes;
+    private List<Route> routes = new ArrayList<>();
     private Route previousClosestRoute;
     private DatabaseHelper databaseHelper;
 
@@ -85,13 +86,13 @@ public class RouteManager {
         try {
             Dao routeDao = databaseHelper.getDao(Route.class);
             routes = routeDao.queryForAll();
+            Log.i(getClass().getName(), "loaded " + routes.size() + " routes from DB");
         } catch (SQLException e) {
             Log.e(getClass().getName(), "Problems retrieving routes from db", e);
         }
     }
 
     private List<Route> generateRoutes(InputSource inputSource) {
-        List<Route> routes = new ArrayList<Route>();
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(false);
         try {
@@ -99,8 +100,6 @@ public class RouteManager {
             Document document = builder.parse(inputSource);
             XPathFactory xFactory = XPathFactory.newInstance();
             XPath xpath = xFactory.newXPath();
-//            XPathExpression xPathExpression = xpath.compile(routeRootXpath);
-//            NodeList nodeList = (NodeList) xPathExpression.evaluate(document, XPathConstants.NODESET);
             NodeList nodeList = (NodeList) xpath.evaluate(routeRootXpath, document, XPathConstants.NODESET);
             for (int i=0; i<nodeList.getLength(); i++) {
                 Node node = nodeList.item(i);
@@ -110,40 +109,48 @@ public class RouteManager {
                 for(Route loadedRoute : routes) {
                     if (loadedRoute.getName().equals(routeName)) {
                         alreadyLoadedRoute = true;
+                        Log.i(getClass().getName(), "Found " + routeName + " previously loaded from DB");
                         break;
                     }
                 }
                 if(!alreadyLoadedRoute) {
+                    Log.i(getClass().getName(), "Loading route " + routeName);
                     try {
                         route.setName(routeName);
                         route.setDescription(xpath.evaluate(routeDescriptionXpathFragment, node));
                         String rawLatLngString = xpath.evaluate(routeCoordsXpathFragment, node);
-                        route.setRoute(buildLatLongFromCoordsString(rawLatLngString));
+                        for (LatLng latLng : buildLatLongFromCoordsString(rawLatLngString)) {
+                            Coordinate gpsPos = new Coordinate();
+                            gpsPos.setLatLng(latLng);
+                            route.addRoute(gpsPos);
+                        }
                         calculateRouteAndPortionLengths(route);
                         addMetadata(route);
                         routes.add(route);
                     } catch (BadRouteException e) {
                         Log.i(getClass().getName(), "Problem building route", e);
                     }
-                    try {
-                        databaseHelper.getDao(Route.class).update(route);
-                    } catch 
+                    databaseHelper.getDao(Route.class).create(route);
                 }
             }
         } catch (Exception e) {
-            Log.e(getClass().getName(), "Problem getting routes from XML at InputSource " + inputSource, e);
+            Log.e(getClass().getName(), "Problem getting routes from XML at InputSource " + inputSource +
+                    " and/or saving", e);
         }
         return routes;
     }
 
     private void calculateRouteAndPortionLengths(Route route) {
         double routeLength = 0.0;
-        LatLng previousLatLng = route.getRoute().get(0);
-        for(LatLng latLng : route.getRoute()) {
-            double routeSegmentLength = SphericalUtil.computeDistanceBetween(previousLatLng, latLng);
-            route.addRouteSegmentLength(routeSegmentLength);
-            routeLength += routeSegmentLength;
-            previousLatLng = latLng;
+        if(route.getRouteCoordinates().size() != 0) {
+            Coordinate previousGpsPos = route.getRouteCoordinates().iterator().next();
+            for (Coordinate gpsPos : route.getRouteCoordinates()) {
+                double routeSegmentLength = SphericalUtil.computeDistanceBetween(
+                        previousGpsPos.getLatLng(), gpsPos.getLatLng());
+                route.addRouteSegmentLength(routeSegmentLength);
+                routeLength += routeSegmentLength;
+                previousGpsPos = gpsPos;
+            }
         }
         route.setLength(routeLength);
     }
@@ -203,7 +210,11 @@ public class RouteManager {
         List<Route> routesWithinRange = new ArrayList<Route>();
         // first get all routes within range
         for(Route route : routes) {
-            if(PolyUtil.isLocationOnEdge(latLng, route.getRoute(), false, MAX_DIST_FROM_RUN)) {
+            List<LatLng> latLngs = new ArrayList<LatLng>();
+            for(Coordinate gpsPos : route.getRouteCoordinates()) {
+                latLngs.add(gpsPos.getLatLng());
+            }
+            if(PolyUtil.isLocationOnEdge(latLng, latLngs, false, MAX_DIST_FROM_RUN)) {
                 routesWithinRange.add(route);
             }
         }

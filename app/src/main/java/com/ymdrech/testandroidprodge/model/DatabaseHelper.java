@@ -1,4 +1,4 @@
-package com.ymdrech.testandroidprodge.data;
+package com.ymdrech.testandroidprodge.model;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -7,7 +7,6 @@ import android.util.Log;
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import com.ymdrech.testandroidprodge.R;
 
 import java.sql.SQLException;
 

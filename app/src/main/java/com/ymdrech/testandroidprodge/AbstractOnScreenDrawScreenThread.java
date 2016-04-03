@@ -14,7 +14,7 @@ public abstract class AbstractOnScreenDrawScreenThread implements DrawScreenThre
     private static final int PAUSE_BETWEEN_DRAW_MILLISECONDS = 100;
 
     private WriteDataToScreen screen;
-    private ScreenData screenData = new ScreenData();
+    private InfoScreenDTO infoScreenDTO = new InfoScreenDTO();
     private boolean run = true;
     private int areaWidth = 96;
     private int areaHeight = 64;
@@ -24,12 +24,12 @@ public abstract class AbstractOnScreenDrawScreenThread implements DrawScreenThre
     private boolean shouldUpdateScreen = true;
 
     public void updateScreen() {
-        synchronized (screenData) {
-            Log.d(getClass().getName(), "updating screen with screenData " + screenData);
+        synchronized (infoScreenDTO) {
+            Log.d(getClass().getName(), "updating screen with infoScreenDTO " + infoScreenDTO);
             screen.clearScreen();
-            if (screenData.getRoute() != null) {
-                drawElapsedDistance(screenData.getRoute(), new Point(3, 14), new Point(areaWidth - 3, 17));
-                writeRouteInfo(screenData.getRoute());
+            if (infoScreenDTO.getRoute() != null) {
+                drawElapsedDistance(infoScreenDTO.getRoute(), new Point(3, 14), new Point(areaWidth - 3, 17));
+                writeRouteInfo(infoScreenDTO.getRoute());
             }
             doUpdateScreen();
             drawFrame(new Point(0, 0), new Point(areaWidth - 1, areaHeight - 1));
@@ -53,7 +53,7 @@ public abstract class AbstractOnScreenDrawScreenThread implements DrawScreenThre
         elapsedDp.setFillColour(Color.TRANSPARENT);
         getScreen().drawRectangle(elapsedDp, topLeft, bottomRight);
         elapsedDp.setFillColour(Color.WHITE);
-        int filledX = (int)Math.round((bottomRight.x - topLeft.x) * (1 - screenData.getAmountComplete())) + topLeft.x;
+        int filledX = (int)Math.round((bottomRight.x - topLeft.x) * (1 - infoScreenDTO.getAmountComplete())) + topLeft.x;
         Point filledTopLeft = new Point(filledX, topLeft.y);
         getScreen().drawRectangle(elapsedDp, filledTopLeft, bottomRight);
     }
@@ -75,7 +75,7 @@ public abstract class AbstractOnScreenDrawScreenThread implements DrawScreenThre
         }
         routeTextProperties.setOpacity(1F);
         routeTextProperties.setSize(8);
-        if(screenData.getRoute() != null) {
+        if(infoScreenDTO.getRoute() != null) {
             if(!routeTextToDisplay(route).equals(scrolledText)) {
                 scrolledTextPortion = null;
                 scrolledText = routeTextToDisplay(route);
@@ -124,13 +124,13 @@ public abstract class AbstractOnScreenDrawScreenThread implements DrawScreenThre
         thread.start();
     }
 
-    public ScreenData getScreenData() {
-        return screenData;
+    public InfoScreenDTO getInfoScreenDTO() {
+        return infoScreenDTO;
     }
 
-    public void setScreenData(ScreenData screenData2) {
-        shouldUpdateScreen = !screenData2.equals(this.screenData);
-        this.screenData = screenData2;
+    public void setInfoScreenDTO(InfoScreenDTO infoScreenDTO2) {
+        shouldUpdateScreen = !infoScreenDTO2.equals(this.infoScreenDTO);
+        this.infoScreenDTO = infoScreenDTO2;
     }
 
     public boolean isRunning() {

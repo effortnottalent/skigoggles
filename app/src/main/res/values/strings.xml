@@ -3,6 +3,7 @@
 
     <string name="app_name">Test Android Prodge</string>
     <string name="title_activity_maps">Map</string>
+    <string name="title_activity_testexternalscreenactivity">Test External Screen Activity</string>
     <string name="title_activity_fullscreen">FullscreenActivity</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>

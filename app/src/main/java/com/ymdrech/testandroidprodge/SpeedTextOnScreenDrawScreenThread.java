@@ -12,8 +12,8 @@ public class SpeedTextOnScreenDrawScreenThread extends AbstractOnScreenDrawScree
 
     protected void doUpdateScreen() {
 
-        if(getScreenData().getRoute() != null) {
-            writeSpeedInfo(getScreenData().getRoute());
+        if(getInfoScreenDTO().getRoute() != null) {
+            writeSpeedInfo(getInfoScreenDTO().getRoute());
         }
     }
 
@@ -22,9 +22,9 @@ public class SpeedTextOnScreenDrawScreenThread extends AbstractOnScreenDrawScree
         textProperties.setForegroundColour(Color.WHITE);
         textProperties.setOpacity(1F);
         textProperties.setFont("monospace");
-        if(getScreenData().getLocation() != null) {
-            float speed = getScreenData().getLocation().getSpeed();
-            String speedString = String.format("%3.0f", (speed == 0.0) ? getScreenData().getCalculatedSpeed() : speed);
+        if(getInfoScreenDTO().getLocation() != null) {
+            float speed = getInfoScreenDTO().getLocation().getSpeed();
+            String speedString = String.format("%3.0f", (speed == 0.0) ? getInfoScreenDTO().getCalculatedSpeed() : speed);
             textProperties.setSize(36);
             getScreen().writeTextAtPosition(textProperties, new Point(2,48), speedString);
             textProperties.setSize(8);

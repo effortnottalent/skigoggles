@@ -49,6 +49,9 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
     private Location previousLocation;
     private DatabaseHelper databaseHelper;
     private Session currentSession;
+    private LocationService locationService;
+
+    private List<AbstractUpdateScreenLayoutService> screenLayouts;
 
     public float getZoomLevel() {
         return zoomLevel;
@@ -67,14 +70,14 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fullscreen);
-        setUpMapIfNeeded();
+        //setUpMapIfNeeded();
         surfaceView = (SurfaceView) findViewById(R.id.eyescreen);
         surfaceHolder = surfaceView.getHolder();
         surfaceHolder.addCallback(this);
-        buildGoogleApiClient();
+        //buildGoogleApiClient();
         createLocationRequest();
-        initialiseRouteManager();
-        initialiseDatabase();
+        //initialiseRouteManager();
+        //initialiseDatabase();
 
     }
 
@@ -127,15 +130,14 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
      */
     private void setUpMapIfNeeded() {
         // Do a null check to confirm that we have not already instantiated the map.
-        if (googleMap == null) {
+//        if (googleMap == null) {
             // Try to obtain the map from the SupportMapFragment.
-            googleMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map))
-                    .getMap();
+//            googleMap = ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getMap();
             // Check if we were successful in obtaining the map.
-            if (googleMap != null) {
-                setUpMap();
-            }
-        }
+//            if (googleMap != null) {
+//                setUpMap();
+//            }
+//        }
     }
 
     /**
@@ -153,16 +155,16 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        DrawScreenThread drawThread1 = new SpeedTextOnScreenDrawScreenThread();
-        drawThread1.setScreen(new OnScreenWriteDataToScreenImpl(surfaceHolder, 96, 64, 4, 0, 0));
-        drawThread1.setRunning(true);
-        drawThread1.run();
-        drawThreadList.add(drawThread1);
-        DrawScreenThread drawThread2 = new SpeedoOnScreenDrawScreenThread();
-        drawThread2.setScreen(new OnScreenWriteDataToScreenImpl(surfaceHolder, 96, 64, 4, (96+4)*4, 0));
-        drawThread2.setRunning(true);
-        drawThread2.run();
-        drawThreadList.add(drawThread2);
+//        DrawScreenThread drawThread1 = new SpeedTextOnScreenDrawScreenThread();
+//        drawThread1.setScreen(new SurfaceHolderWriteDataToScreen(surfaceHolder, 96, 64, 4, 0, 0));
+//        drawThread1.setRunning(true);
+//        drawThread1.run();
+//        drawThreadList.add(drawThread1);
+//        DrawScreenThread drawThread2 = new SpeedoOnScreenDrawScreenThread();
+//        drawThread2.setScreen(new SurfaceHolderWriteDataToScreen(surfaceHolder, 96, 64, 4, (96+4)*4, 0));
+//        drawThread2.setRunning(true);
+//        drawThread2.run();
+//        drawThreadList.add(drawThread2);
 
     }
 
@@ -204,32 +206,37 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
 
     @Override
     public void onLocationChanged(Location location) {
-        ScreenData screenData = new ScreenData();
-        screenData.setLocation(location);
-        if(previousLocation != null) {
-            screenData.setCalculatedSpeed(getInstantaneousSpeed(previousLocation, location));
-        }
-        if(marker == null) {
-            setUpMap();
-        }
-        if(location != null) {
-            LatLng markerLatLong = new LatLng(location.getLatitude(), location.getLongitude());
-            marker.setPosition(markerLatLong);
-            Route route = routeManager.closestRoute(markerLatLong);
-            if(route != null) {
-                screenData.setRoute(route);
-                screenData.setAmountComplete(getPercentageRouteComplete(location, screenData.getRoute()));
-                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLong, getZoomLevel()));
-            }
-            if(drawThreadList != null) {
-                for(DrawScreenThread drawScreenThread : drawThreadList) {
-                    drawScreenThread.setScreenData(screenData);
-                }
-            }
-            previousLocation = location;
-            addLocationToSession(location, route);
-            Log.d(getClass().getName(), "updating screenData to " + screenData);
-        }
+
+        Date locationChangedDate = new Date();
+        locationService.updateCurrentLocation(location, locationChangedDate);
+
+//
+//        InfoScreenDTO infoScreenDTO = new InfoScreenDTO();
+//        infoScreenDTO.setLocation(location);
+//        if(previousLocation != null) {
+//            infoScreenDTO.setCalculatedSpeed(getInstantaneousSpeed(previousLocation, location));
+//        }
+//        if(marker == null) {
+//            setUpMap();
+//        }
+//        if(location != null) {
+//            LatLng markerLatLong = new LatLng(location.getLatitude(), location.getLongitude());
+//            marker.setPosition(markerLatLong);
+//            Route route = routeManager.closestRoute(markerLatLong);
+//            if(route != null) {
+//                infoScreenDTO.setRoute(route);
+//                infoScreenDTO.setAmountComplete(getPercentageRouteComplete(location, infoScreenDTO.getRoute()));
+//                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(markerLatLong, getZoomLevel()));
+//            }
+//            if(drawThreadList != null) {
+//                for(DrawScreenThread drawScreenThread : drawThreadList) {
+//                    drawScreenThread.setInfoScreenDTO(infoScreenDTO);
+//                }
+//            }
+//            previousLocation = location;
+//            addLocationToSession(location, route);
+//            Log.d(getClass().getName(), "updating infoScreenDTO to " + infoScreenDTO);
+//        }
     }
 
     private Session createNewSession() {
@@ -317,8 +324,8 @@ public class MapsActivity extends FragmentActivity implements SurfaceHolder.Call
         }
 
         double distance = 0.0;
-        for(double segmentLengths : route.getRouteSegmentLengths()) {
-            distance += segmentLengths;
+        for(int i=routeLatLngIndex; i < route.getRouteSegmentLengths().size(); i++) {
+            distance += route.getRouteSegmentLengths().get(i);
         }
         return distance / route.getLength();
     }

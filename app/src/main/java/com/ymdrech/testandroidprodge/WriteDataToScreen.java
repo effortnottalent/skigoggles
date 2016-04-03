@@ -1,6 +1,7 @@
 package com.ymdrech.testandroidprodge;
 
 import android.graphics.Point;
+import android.view.SurfaceHolder;
 
 /**
  * Created by e4t on 2/11/2015.
@@ -14,4 +15,11 @@ public interface WriteDataToScreen {
     public void drawArc(DrawProperties drawProperties, Point topLeft, Point bottomRight, float startAngle, float sweepAngle);
     public void updateScreen();
     public void clearScreen();
+    public int getAreaHeight();
+    public int getAreaWidth();
+    public void setAreaHeight(int areaHeight);
+    public void setAreaWidth(int areaWidth);
+    public void setSurfaceHolder(SurfaceHolder surfaceHolder);
+    public void setZoomMultiplier(int zoomMultiplier);
+    public int getZoomMultiplier();
 }

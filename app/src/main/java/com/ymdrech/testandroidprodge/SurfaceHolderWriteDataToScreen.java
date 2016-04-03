@@ -1,6 +1,5 @@
 package com.ymdrech.testandroidprodge;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -12,7 +11,7 @@ import android.view.SurfaceHolder;
 /**
  * Created by e4t on 2/11/2015.
  */
-public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
+public class SurfaceHolderWriteDataToScreen implements WriteDataToScreen {
 
     private int areaWidth;
     private int areaHeight;
@@ -21,28 +20,19 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
     private int offsetY = 0;
     private SurfaceHolder surfaceHolder;
 
-    private Canvas lockedCanvas = null;
-
-    public OnScreenWriteDataToScreenImpl(SurfaceHolder surfaceHolder, int areaWidth, int areaHeight, int zoomMultiplier, int offsetX, int offsetY) {
-        this.surfaceHolder = surfaceHolder;
-        this.areaWidth = areaWidth;
-        this.areaHeight = areaHeight;
-        this.zoomMultiplier = zoomMultiplier;
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
-    }
+    private Canvas canvas = null;
 
     private Rect calculateRect() {
         return new Rect(moveCoordX(0), moveCoordY(0), moveCoordX(areaWidth), moveCoordY(areaHeight));
     }
 
     public void clearScreen() {
-        if(lockedCanvas == null) {
-            lockedCanvas = surfaceHolder.lockCanvas(calculateRect());
+        if(canvas == null) {
+            canvas = surfaceHolder.lockCanvas(calculateRect());
         }
         final Paint paint = new Paint();
         paint.setColor(Color.BLACK);
-        lockedCanvas.drawRect(moveCoordX(0), moveCoordY(0), moveCoordX(areaWidth),
+        canvas.drawRect(moveCoordX(0), moveCoordY(0), moveCoordX(areaWidth),
                 moveCoordY(areaHeight), paint);
     }
 
@@ -59,27 +49,29 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
     }
 
     public void writeTextAtPosition(final TextProperties textProperties, final Point point, final String text) {
+
         final Paint paint = new Paint();
-        // paint.setAlpha(Math.round(textProperties.getOpacity()*256));
+        paint.setAlpha(Math.round(textProperties.getOpacity() * 256));
         paint.setColor(textProperties.getForegroundColour());
         paint.setTextSize(textProperties.getSize() * zoomMultiplier);
         paint.setTypeface(Typeface.create(textProperties.getFont(), 0));
-        if(lockedCanvas == null) {
-            lockedCanvas = surfaceHolder.lockCanvas(calculateRect());
+
+        if(canvas == null) {
+            canvas = surfaceHolder.lockCanvas(calculateRect());
         }
-        lockedCanvas.drawText(text, moveCoordX(point.x), moveCoordY(point.y), paint);
+        canvas.drawText(text, moveCoordX(point.x), moveCoordY(point.y), paint);
     }
 
     public void drawRectangle(final DrawProperties drawProperties, final Point topLeft, final Point bottomRight) {
-        if(lockedCanvas == null) {
-            lockedCanvas = surfaceHolder.lockCanvas(calculateRect());
+        if(canvas == null) {
+            canvas = surfaceHolder.lockCanvas(calculateRect());
         }
         // do fill first
         final Paint fillPaint = new Paint();
         fillPaint.setColor(drawProperties.getFillColour());
         fillPaint.setStyle(Paint.Style.FILL);
         fillPaint.setStrokeWidth(drawProperties.getLineWidth());
-        lockedCanvas.drawRect(
+        canvas.drawRect(
                 moveCoordX(topLeft.x),
                 moveCoordY(topLeft.y),
                 moveCoordX(bottomRight.x),
@@ -94,7 +86,7 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
                     drawProperties.getLineWidth() == 0 ?
                             1 * zoomMultiplier :
                             drawProperties.getLineWidth() * zoomMultiplier);
-            lockedCanvas.drawRect(
+            canvas.drawRect(
                     moveCoordX(topLeft.x),
                     moveCoordY(topLeft.y),
                     moveCoordX(bottomRight.x),
@@ -105,8 +97,8 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
 
 
     public void drawLine(final DrawProperties drawProperties, final Point topLeft, final Point bottomRight) {
-        if (lockedCanvas == null) {
-            lockedCanvas = surfaceHolder.lockCanvas(calculateRect());
+        if (canvas == null) {
+            canvas = surfaceHolder.lockCanvas(calculateRect());
         }
         final Paint paint = new Paint();
         paint.setColor(drawProperties.getLineColour());
@@ -115,7 +107,7 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
                         1 * zoomMultiplier :
                         drawProperties.getLineWidth() * zoomMultiplier);
         paint.setStyle(Paint.Style.STROKE);
-        lockedCanvas.drawLine(
+        canvas.drawLine(
                 moveCoordX(topLeft.x),
                 moveCoordY(topLeft.y),
                 moveCoordX(bottomRight.x),
@@ -124,8 +116,8 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
     }
 
     public void drawArc(final DrawProperties drawProperties, final Point topLeft, final Point bottomRight, float startAngle, float sweepAngle) {
-        if (lockedCanvas == null) {
-            lockedCanvas = surfaceHolder.lockCanvas(calculateRect());
+        if (canvas == null) {
+            canvas = surfaceHolder.lockCanvas(calculateRect());
         }
         final Paint paint = new Paint();
         paint.setColor(drawProperties.getLineColour());
@@ -134,7 +126,7 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
                         1 * zoomMultiplier :
                         drawProperties.getLineWidth() * zoomMultiplier);
         paint.setStyle(Paint.Style.STROKE);
-        lockedCanvas.drawArc(
+        canvas.drawArc(
                 moveCoordX(topLeft.x),
                 moveCoordY(topLeft.y),
                 moveCoordX(bottomRight.x),
@@ -146,15 +138,15 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
     }
 
     public void drawOval(final DrawProperties drawProperties, final Point topLeft, final Point bottomRight) {
-        if(lockedCanvas == null) {
-            lockedCanvas = surfaceHolder.lockCanvas(calculateRect());
+        if(canvas == null) {
+            canvas = surfaceHolder.lockCanvas(calculateRect());
         }
         // do fill first
         final Paint fillPaint = new Paint();
         fillPaint.setColor(drawProperties.getFillColour());
         fillPaint.setStrokeWidth(drawProperties.getLineWidth());
         fillPaint.setStyle(Paint.Style.FILL);
-        lockedCanvas.drawOval(
+        canvas.drawOval(
                 moveCoordX(topLeft.x),
                 moveCoordY(topLeft.y),
                 moveCoordX(bottomRight.x),
@@ -169,7 +161,7 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
                     drawProperties.getLineWidth() == 0 ?
                             1 * zoomMultiplier :
                             drawProperties.getLineWidth() * zoomMultiplier);
-            lockedCanvas.drawOval(
+            canvas.drawOval(
                     moveCoordX(topLeft.x),
                     moveCoordY(topLeft.y),
                     moveCoordX(bottomRight.x),
@@ -179,9 +171,9 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
     }
 
     public void updateScreen() {
-        if(lockedCanvas != null) {
-            surfaceHolder.unlockCanvasAndPost(lockedCanvas);
-            lockedCanvas = null;
+        if(canvas != null) {
+            surfaceHolder.unlockCanvasAndPost(canvas);
+            canvas = null;
         }
     }
 
@@ -209,4 +201,35 @@ public class OnScreenWriteDataToScreenImpl implements WriteDataToScreen {
         this.zoomMultiplier = zoomMultiplier;
     }
 
+    public int getOffsetX() {
+        return offsetX;
+    }
+
+    public void setOffsetX(int offsetX) {
+        this.offsetX = offsetX;
+    }
+
+    public int getOffsetY() {
+        return offsetY;
+    }
+
+    public void setOffsetY(int offsetY) {
+        this.offsetY = offsetY;
+    }
+
+    public SurfaceHolder getSurfaceHolder() {
+        return surfaceHolder;
+    }
+
+    public void setSurfaceHolder(SurfaceHolder surfaceHolder) {
+        this.surfaceHolder = surfaceHolder;
+    }
+
+    public Canvas getCanvas() {
+        return canvas;
+    }
+
+    public void setCanvas(Canvas canvas) {
+        this.canvas = canvas;
+    }
 }

@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.res.AssetManager;
 import android.test.InstrumentationTestCase;
 
+import com.ymdrech.testandroidprodge.model.Route;
+
 import junit.framework.Assert;
 
 import java.io.FileInputStream;
@@ -28,8 +30,7 @@ public class RouteManagerTest extends InstrumentationTestCase {
         when(assetManager.open(anyString())).thenReturn(new FileInputStream("src/main/assets/3 Valleys Pistemap v1.0.kml"));
 
         RouteManager routeManager = new RouteManager(activity);
-        routeManager.setKmlPath("3 Valleys Pistemap v1.0.kml");
-        List<Route> routes = routeManager.getRoutes();
+        List<Route> routes = routeManager.getRoutes("3 Valleys Pistemap v1.0.kml");
         Assert.assertEquals(routes.size(), 10);
 
     }

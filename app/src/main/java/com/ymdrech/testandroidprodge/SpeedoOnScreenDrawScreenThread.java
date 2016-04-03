@@ -15,11 +15,11 @@ public class SpeedoOnScreenDrawScreenThread extends AbstractOnScreenDrawScreenTh
     float maxSpeedAngle = new Float(Math.PI * 0.25);
 
     protected void doUpdateScreen() {
-        if(getScreenData().getRoute() != null) {
+        if(getInfoScreenDTO().getRoute() != null) {
             int diameter = getAreaHeight() - 20;
             drawDial(new Point(5, 20), diameter);
-            drawPointer(new Point(5, 20), diameter, getScreenData().getCalculatedSpeed());
-            writeSpeedInfo(getScreenData().getRoute());
+            drawPointer(new Point(5, 20), diameter, getInfoScreenDTO().getCalculatedSpeed());
+            writeSpeedInfo(getInfoScreenDTO().getRoute());
         }
     }
 
@@ -55,9 +55,9 @@ public class SpeedoOnScreenDrawScreenThread extends AbstractOnScreenDrawScreenTh
         textProperties.setForegroundColour(Color.WHITE);
         textProperties.setOpacity(1F);
         textProperties.setFont("monospace");
-        if(getScreenData().getLocation() != null) {
-            float speed = getScreenData().getLocation().getSpeed();
-            String speedString = String.format("%3.0f", (speed == 0.0) ? getScreenData().getCalculatedSpeed() : speed);
+        if(getInfoScreenDTO().getLocation() != null) {
+            float speed = getInfoScreenDTO().getLocation().getSpeed();
+            String speedString = String.format("%3.0f", (speed == 0.0) ? getInfoScreenDTO().getCalculatedSpeed() : speed);
             textProperties.setSize(8);
             getScreen().writeTextAtPosition(textProperties, new Point(60,48), speedString);
         }

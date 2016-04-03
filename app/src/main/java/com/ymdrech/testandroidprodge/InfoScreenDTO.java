@@ -7,7 +7,7 @@ import com.ymdrech.testandroidprodge.model.Route;
 /**
  * Created by e4t on 2/15/2015.
  */
-public class ScreenData {
+public class InfoScreenDTO {
 
     private Location location;
     private Route route;
@@ -51,7 +51,7 @@ public class ScreenData {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ScreenData that = (ScreenData) o;
+        InfoScreenDTO that = (InfoScreenDTO) o;
 
         if (Double.compare(that.amountComplete, amountComplete) != 0) return false;
         if (Double.compare(that.calculatedSpeed, calculatedSpeed) != 0) return false;
@@ -79,7 +79,7 @@ public class ScreenData {
 
     @Override
     public String toString() {
-        return "ScreenData{" +
+        return "InfoScreenDTO{" +
                 "location=" + location +
                 ", route=" + route +
                 ", calculatedSpeed=" + calculatedSpeed +

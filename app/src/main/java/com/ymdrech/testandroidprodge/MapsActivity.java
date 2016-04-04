@@ -33,7 +33,9 @@ import java.util.Date;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements SurfaceHolder.Callback,
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        LocationListener {
 
     private GoogleMap googleMap; // Might be null if Google Play services APK is not available.
     private GoogleApiClient googleApiClient;

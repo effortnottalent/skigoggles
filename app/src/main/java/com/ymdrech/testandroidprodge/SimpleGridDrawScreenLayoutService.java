@@ -16,10 +16,20 @@ public class SimpleGridDrawScreenLayoutService extends AbstractDrawScreenLayoutS
     protected void doDrawScreen(Map<String, Object> screenLayoutData) {
 
         WriteDataToScreen writeDataToScreen = getWriteDataToScreen();
+        DrawScreenHelper.blankScreen(writeDataToScreen, Color.BLACK);
         DrawScreenHelper.drawGrid(writeDataToScreen, GRID_UNIT);
         drawData(writeDataToScreen, screenLayoutData);
         writeDataToScreen.updateScreen();
 
+    }
+
+    private String getCompassFromBearing(Object bearing) {
+        if(bearing instanceof Float) {
+            String[] compassDirections = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"};
+            int index = (int) (((float)bearing / 22.5) + .5);
+            return compassDirections[index % 16];
+        }
+        return bearing.toString();
     }
 
     protected void drawData(WriteDataToScreen writeDataToScreen,
@@ -33,12 +43,12 @@ public class SimpleGridDrawScreenLayoutService extends AbstractDrawScreenLayoutS
         whiteDp.setFillColour(Color.TRANSPARENT);
 
         writeDataToScreen.drawLine(whiteDp,
-                new Point(2 * widthUnit, 8 * heightUnit),
-                new Point(14 * widthUnit, 8 * heightUnit));
+                new Point(1 * widthUnit, 8 * heightUnit),
+                new Point(15 * widthUnit, 8 * heightUnit));
 
         writeDataToScreen.drawLine(whiteDp,
-                new Point(8 * widthUnit, 1 * heightUnit),
-                new Point(8 * widthUnit, 15 * heightUnit));
+                new Point(8 * widthUnit, 2 * heightUnit),
+                new Point(8 * widthUnit, 14 * heightUnit));
 
         TextProperties whiteTp = new TextProperties();
         whiteTp.setBackgroundColour(Color.TRANSPARENT);
@@ -48,28 +58,28 @@ public class SimpleGridDrawScreenLayoutService extends AbstractDrawScreenLayoutS
 
         writeDataToScreen.writeTextAtPosition(whiteTp,
                 new Point(1 * widthUnit, 6 * heightUnit),
-                (String) screenLayoutData.get("speed"));
+                screenLayoutData.get("speed"));
 
         writeDataToScreen.writeTextAtPosition(whiteTp,
                 new Point(1 * widthUnit, 13 * heightUnit),
-                (String) screenLayoutData.get("runs"));
+                screenLayoutData.get("runs"));
 
         writeDataToScreen.writeTextAtPosition(whiteTp,
-                new Point(10 * widthUnit, 6 * heightUnit),
-                (String) screenLayoutData.get("direction"));
+                new Point(9 * widthUnit, 6 * heightUnit),
+                getCompassFromBearing(screenLayoutData.get("direction")));
 
         writeDataToScreen.writeTextAtPosition(whiteTp,
-                new Point(10 * widthUnit, 13 * heightUnit),
-                (String) screenLayoutData.get("distance-down"));
+                new Point(9 * widthUnit, 13 * heightUnit),
+                screenLayoutData.get("distance-down"));
 
         whiteTp.setSize(heightUnit);
 
         writeDataToScreen.writeTextAtPosition(whiteTp,
-                new Point(2 * widthUnit, 3 * heightUnit),
+                new Point(1 * widthUnit, 3 * heightUnit),
                 "speed");
 
         writeDataToScreen.writeTextAtPosition(whiteTp,
-                new Point(2 * widthUnit, 10 * heightUnit),
+                new Point(1 * widthUnit, 10 * heightUnit),
                 "runs");
 
         writeDataToScreen.writeTextAtPosition(whiteTp,

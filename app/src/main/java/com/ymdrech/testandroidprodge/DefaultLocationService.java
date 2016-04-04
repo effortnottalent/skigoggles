@@ -23,6 +23,11 @@ public class DefaultLocationService implements LocationService {
     private RoutesService routesService;
     private PersistenceService persistenceService;
 
+    @Override
+    public void setPersistenceService(PersistenceService persistenceService) {
+        this.persistenceService = persistenceService;
+    }
+
     private InstantLocation previousInstantLocation;
 
     private Route previousClosestRoute;
@@ -61,10 +66,25 @@ public class DefaultLocationService implements LocationService {
 
     @Override
     public void updateCurrentLocation(Location location, Date date) {
-        double calculatedSpeed = getInstantaneousSpeed(previousInstantLocation.location, location);
+        double calculatedSpeed = 0.0;
+        if(previousInstantLocation != null) {
+            calculatedSpeed = getInstantaneousSpeed(previousInstantLocation.location, location);
+            if (!location.hasBearing()) {
+                location.setBearing(
+                        (float) getCalculatedBearing(previousInstantLocation.location, location));
+            }
+            if (!location.hasSpeed()) {
+                location.setSpeed((float) calculatedSpeed);
+            }
+        }
         previousInstantLocation = new InstantLocation(calculatedSpeed, location, date);
         persistenceService.persistLocationRecord(
                 new PersistenceService.LocationRecord(getClosestRoute(), location, date));
+    }
+
+    @Override
+    public void setRoutesService(RoutesService routesService) {
+        this.routesService = routesService;
     }
 
     public Route getClosestRoute() {
@@ -93,6 +113,12 @@ public class DefaultLocationService implements LocationService {
                 new LatLng(afterLocation.getLatitude(), afterLocation.getLongitude()));
         double time = afterLocation.getElapsedRealtimeNanos() - beforeLocation.getElapsedRealtimeNanos();
         return distance / time * 1e9;
+    }
+
+    private double getCalculatedBearing(Location beforeLocation, Location afterLocation) {
+        return SphericalUtil.computeHeading(
+                new LatLng(beforeLocation.getLatitude(), beforeLocation.getLongitude()),
+                new LatLng(afterLocation.getLatitude(), afterLocation.getLongitude()));
     }
 
 

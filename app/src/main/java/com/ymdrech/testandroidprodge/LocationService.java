@@ -40,9 +40,12 @@ public interface LocationService {
         }
     }
 
+    void setPersistenceService(PersistenceService persistenceService);
+
     public CurrentSessionStats getCurrentSessionStats();
     public List<Route> getNearbyRoutes();
     public Route getClosestRoute();
     public InstantLocation getInstantLocation();
     public void updateCurrentLocation(Location location, Date date);
+    public void setRoutesService(RoutesService routesService);
 }

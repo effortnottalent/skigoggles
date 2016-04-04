@@ -8,7 +8,7 @@ import android.view.SurfaceHolder;
  */
 public interface WriteDataToScreen {
 
-    public void writeTextAtPosition(TextProperties textProperties, Point point, String text);
+    public void writeTextAtPosition(TextProperties textProperties, Point point, Object text);
     public void drawRectangle(DrawProperties drawProperties, Point topLeft, Point bottomRight);
     public void drawLine(DrawProperties drawProperties, Point topLeft, Point bottomRight);
     public void drawOval(DrawProperties drawProperties, Point topLeft, Point bottomRight);

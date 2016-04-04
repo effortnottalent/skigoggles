@@ -48,7 +48,7 @@ public class SurfaceHolderWriteDataToScreen implements WriteDataToScreen {
         return moveCoord(coord) + offsetY;
     }
 
-    public void writeTextAtPosition(final TextProperties textProperties, final Point point, final String text) {
+    public void writeTextAtPosition(final TextProperties textProperties, final Point point, final Object text) {
 
         final Paint paint = new Paint();
         paint.setAlpha(Math.round(textProperties.getOpacity() * 256));
@@ -59,7 +59,8 @@ public class SurfaceHolderWriteDataToScreen implements WriteDataToScreen {
         if(canvas == null) {
             canvas = surfaceHolder.lockCanvas(calculateRect());
         }
-        canvas.drawText(text, moveCoordX(point.x), moveCoordY(point.y), paint);
+        String textString = text == null ? "" : text.toString();
+        canvas.drawText(textString, moveCoordX(point.x), moveCoordY(point.y), paint);
     }
 
     public void drawRectangle(final DrawProperties drawProperties, final Point topLeft, final Point bottomRight) {

@@ -8,6 +8,13 @@ import android.graphics.Point;
  */
 public class DrawScreenHelper {
 
+    public static void blankScreen(WriteDataToScreen writeDataToScreen, Integer blankColour) {
+        DrawProperties blankDp = new DrawProperties();
+        blankDp.setFillColour(blankColour == null ? Color.BLACK : blankColour);
+        writeDataToScreen.drawRectangle(blankDp,
+                new Point(0, 0),
+                new Point(writeDataToScreen.getAreaWidth(), writeDataToScreen.getAreaHeight()));
+    }
     public static void drawGrid(WriteDataToScreen writeDataToScreen, int gridUnit) {
 
         int widthUnit = Math.round(writeDataToScreen.getAreaWidth() / gridUnit);
